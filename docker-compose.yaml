@@ -1,0 +1,38 @@
+version: '2'
+services: 
+  benjerry:
+    build: .
+    image: benjerry
+    environment:
+      - BENJERRY_LOG_LEVEL=info
+      - BENJERRY_LOG_FORMAT=text
+      - BENJERRY_HOSTNAME=docker-compose
+      - BENJERRY_LISTEN_PORT=3000
+      - BENJERRY_POSTGRES_DB_URL=postgres://test:test@postgres:5432/testdb?sslmode=disable
+      - BENJERRY_DB_MIGRATIONS_PATH="/root/db/migrations"
+      - BENJERRY_STATIC_TOKENS=suWsnKCXYjz12hQO=post.icecream,read.icecream
+      - BENJERRY_LOAD_FIRST_TIME_DATA=true
+    ports:
+      - "3000:3000"
+    volumes:
+        - ./db:/root/db
+    container_name: benjerry_app  
+    depends_on:
+      - postgres
+    links:
+      - postgres
+  postgres:
+    image: postgres:10.3-alpine
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_DB=testdb
+    ports:
+      - "5433:5432"
+    container_name: benjerry_postgres
+  start_dependencies:
+    image: dadarek/wait-for-dependencies
+    depends_on:
+      - postgres
+    command: postgres:5432
+    container_name: benjerry_start_dependencies
