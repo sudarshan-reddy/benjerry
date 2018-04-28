@@ -222,3 +222,114 @@ func Test_GetIceCreamData(t *testing.T) {
 	}
 
 }
+
+func Test_UpdateIceCreamData(t *testing.T) {
+	var tests = []struct {
+		desc               string
+		reqBody            io.Reader
+		expectedResponse   string
+		dbError            error
+		expectedStatusCode int
+		expectedDataStore  string
+	}{
+		{
+			desc: "successful update should return a 200",
+			reqBody: bytes.NewReader([]byte(`
+				{
+				    "name": "Chocobar",
+				    "story": "cheap and best",
+				    "description": "Some new stuff",
+				    "sourcing_values": [
+				        "Responsibly Sourced Packaging",
+				        "Caring Dairy"
+				    ],
+				    "ingredients": [
+				        "cream",
+				        "skim milk",
+				        "cocoa (processed with alkali)",
+				        "natural flavors",
+				        "cocoa",
+				        "guar gum",
+				        "butteroil",
+				        "milk protein concentrate",
+				        "corn starch",
+				        "salt",
+				        "soy lecithin",
+				        "tapioca starch",
+				        "pectin",
+				        "caramelized sugar syrup",
+				        "baking soda",
+				        "molasses",
+				        "honey",
+				        "carrageenan",
+				        "vanilla extract"
+				    ],
+				    "allergy_info": "contains milk, eggs, wheat and soy",
+				    "dietary_certification": "",
+				    "product_id": "1111"
+				}
+			`)),
+			expectedResponse:   "\"\"\n",
+			expectedStatusCode: 200,
+			expectedDataStore: "{\"name\":\"Chocobar\",\"image_open\":\"\"," +
+				"\"image_closed\":\"\",\"story\":\"cheap and best\"," +
+				"\"description\":\"Some new stuff\",\"sourcing_values\":" +
+				"[\"Responsibly Sourced Packaging\",\"Caring Dairy\"]," +
+				"\"ingredients\":" +
+				"[\"cream\",\"skim milk\",\"cocoa (processed with alkali)\"," +
+				"\"natural flavors\",\"cocoa\",\"guar gum\",\"butteroil\"," +
+				"\"milk protein concentrate\",\"corn starch\",\"salt\"," +
+				"\"soy lecithin\",\"tapioca starch\",\"pectin\"," +
+				"\"caramelized sugar syrup\",\"baking soda\",\"molasses\"," +
+				"\"honey\",\"carrageenan\",\"vanilla extract\"]," +
+				"\"allergy_info\":\"contains milk, eggs, wheat and soy\"," +
+				"\"dietary_certification\":\"\",\"product_id\":\"1111\"}",
+		},
+		{
+			desc:               "if database returns error, throw unexpected error response",
+			reqBody:            bytes.NewReader([]byte("{}")),
+			dbError:            errors.New("pg error : error in db"),
+			expectedStatusCode: 500,
+			expectedResponse: "{\"httpStatus\":500," +
+				"\"httpCode\":\"internal_server_error\"," +
+				"\"requestId\":\"\",\"errors\":[]}\n",
+			expectedDataStore: "{\"name\":\"\",\"image_open\":\"\"," +
+				"\"image_closed\":\"\",\"story\":\"\",\"description\":\"\"," +
+				"\"sourcing_values\":null,\"ingredients\":null," +
+				"\"allergy_info\":\"\",\"dietary_certification\":\"\"," +
+				"\"product_id\":\"\"}",
+		},
+		{
+			desc:               "invalid format returns a 400 error",
+			reqBody:            bytes.NewReader([]byte("")),
+			expectedStatusCode: 400,
+			expectedResponse: "{\"httpStatus\":400,\"httpCode\":\"bad_request\"," +
+				"\"requestId\":\"\",\"errors\":[{\"code\":\"format_error\"," +
+				"\"message\":\"invalid input format. error: EOF\"}]}\n",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			assert := assert.New(t)
+			iceCreamStore := &fakeIceCreamStore{err: test.dbError}
+			ich := NewIceCreamHandler(iceCreamStore)
+
+			req, err := http.NewRequest("POST", "/url", test.reqBody)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("ice-cream-name", "chocobar")
+			ctx := context.WithValue(context.Background(), chi.RouteCtxKey, rctx)
+
+			rr := httptest.NewRecorder()
+			handler := http.HandlerFunc(ich.UpdateIceCreamData)
+			handler.ServeHTTP(rr, req.WithContext(ctx))
+			assert.Equal(test.expectedResponse, rr.Body.String())
+			assert.Equal(test.expectedStatusCode, rr.Code)
+			assert.Equal(test.expectedDataStore, iceCreamStore.serializedStore)
+		})
+	}
+}
