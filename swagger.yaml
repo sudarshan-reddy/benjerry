@@ -1,0 +1,186 @@
+swagger: "2.0"
+info:
+  version: 0.1.0
+  title: benjerry APIs
+  description: APIs for communicating with benjerry app
+basePath: /api/v1
+securityDefinitions:
+  Bearer:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: bearer tokens are currently static
+
+paths: 
+  /create:
+    post:
+      description: Create a new ice cream
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            $ref: '#/definitions/IceCreamRequest'
+      security:
+        - Bearer: []
+      responses:
+         "201":
+            description: Indicates ice cream created
+         "400":
+            description: Bad Request when input parameters are invalid
+            schema:
+               $ref: '#/definitions/HandlerError'
+         "403":
+           $ref: "#/responses/Standard403ForbiddenResponse"
+         "500":
+           $ref: "#/responses/Standard500InternalServerErrorResponse"
+           
+  /read/{ice-cream-name}:
+    get: 
+      description: gets an ice cream by it's name
+      parameters:
+        - name: "ice-cream-name"
+          in: "path"
+          required: true
+          type: string
+          description: unique name of ice cream that can be separated by space
+      responses:
+         "200":
+            description: Indicates ice cream data is retrieved
+            schema:
+              $ref: '#/definitions/IceCreamRequest'
+         "404":
+            description: Not found when ice cream is not found
+            schema:
+               $ref: '#/definitions/HandlerError'
+         "403":
+           $ref: "#/responses/Standard403ForbiddenResponse"
+         "500":
+           $ref: "#/responses/Standard500InternalServerErrorResponse"
+           
+  /update:
+    put:
+      description: updates an ice cream based on the name parameter
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            $ref: '#/definitions/IceCreamRequest'
+      security:
+        - Bearer: []
+      responses:
+         "200":
+            description: Indicates ice cream updated
+         "400":
+            description: Bad Request when input parameters are invalid
+            schema:
+               $ref: '#/definitions/HandlerError'
+         "403":
+           $ref: "#/responses/Standard403ForbiddenResponse"
+         "500":
+           $ref: "#/responses/Standard500InternalServerErrorResponse"
+  
+  /delete/{ice-cream-name}:
+    delete:
+      description: deletes an ice cream name in the route
+      parameters:
+        - name: "ice-cream-name"
+          in: "path"
+          required: true
+          type: string
+          description: unique name of ice cream that can be separated by space
+      responses:
+         "200":
+            description: Indicates ice cream data is deleted
+         "404":
+            description: Not found when ice cream is not found
+            schema:
+               $ref: '#/definitions/HandlerError'
+         "403":
+           $ref: "#/responses/Standard403ForbiddenResponse"
+         "500":
+           $ref: "#/responses/Standard500InternalServerErrorResponse"
+
+definitions:
+  
+  IceCreamRequest: 
+    type: object
+    properties:
+        name:
+            type: string
+            example: "Vanilla Toffee Bar Crunch"
+        image_closed: 
+            type: string
+            example: "/files/live/sites/systemsite/files/flavors/products/us/pint/open-closed-pints/vanilla-toffee-landing.png"
+        image_open: 
+            type: string
+            example: "/files/live/sites/systemsite/files/flavors/products/us/pint/open-closed-pints/vanilla-toffee-landing-open.png"
+        description: 
+            type: string
+            example: "Vanilla Ice Cream with Fudge-Covered Toffee Pieces"
+        story:
+            type: string
+            example: "Vanilla"
+        sourcing_values:
+            type : array
+            items:
+                type: string
+        ingredients:
+            type: array
+            items: 
+                type: string
+        allergy_info: 
+            type: string
+        dietary_certifications: 
+            type: string
+        productId: 
+            type: string
+
+
+  HandlerError:
+    type: object
+    properties:
+      httpStatus:
+        type: integer
+      code:
+        type: string
+      requestId:
+        type: string
+      errors:
+        type: array
+        items:
+          $ref: '#/definitions/Error'
+
+  Error:
+    type: object
+    description: Apart from the below specified fields the error could contain other fields related the error.
+    properties:
+      code:
+        type: string
+        description: Error code.
+      message:
+        type: string
+        description: Error description.
+
+responses:
+
+  Standard500InternalServerErrorResponse:
+     description: Internal Server Error
+     schema:
+        $ref: "#/definitions/HandlerError"
+
+  Standard403ForbiddenResponse:
+     description: Forbidden when the access_token is invalid
+     schema:
+        $ref: '#/definitions/HandlerError'
+
+  Standard400BadRequestResponse:
+     description: Bad Request
+     schema:
+        $ref: '#/definitions/HandlerError'
+  
+  Standard404BadRequestResponse:
+     description: Bad Request
+     schema:
+        $ref: '#/definitions/HandlerError'
